@@ -17,6 +17,13 @@ jobs:
       - name: Setup OCI config and key
         run: |
          mkdir -p ~/.oci ~/.ssh ~/.kube
+      - name: Write SSH key from secrets
+        run: |
+         mkdir -p ~/.ssh
+         echo "${{ secrets.BASTION_PRIVATE_KEY }}" > ~/.ssh/bastion_key
+         echo "${{ secrets.BASTION_PUBLIC_KEY }}" > ~/.ssh/bastion_key.pub
+         chmod 600 ~/.ssh/bastion_key
+         chmod 644 ~/.ssh/bastion_key.pub
 
 
       # Example: your existing bastion step
