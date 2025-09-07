@@ -2,9 +2,6 @@ name: Test OKE_Connectivity
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
 
 jobs:
   test-oke-connection:
@@ -14,32 +11,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        name: test-oke-connection
-
-on:
-  workflow_dispatch:
-
-jobs:
-  test-oke:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+     
 
       # ✅ Add the OCI config + private key step here
       - name: Setup OCI config and key
         run: |
-          mkdir -p ~/.oci ~/.ssh ~/.kube
+         mkdir -p ~/.oci ~/.ssh ~/.kube
 
-          # Write OCI config
-          echo "${{ secrets.OCI_CONFIG }}" > ~/.oci/config
-
-          # Write OCI private key (preserve formatting)
-          printf "%s\n" "${{ secrets.OCI_API_PRIVATE_KEY }}" > ~/.oci/key
-
-          chmod 600 ~/.oci/key
-          chmod 600 ~/.oci/config
 
       # Example: your existing bastion step
       - name: Create SSH tunnel to OKE
