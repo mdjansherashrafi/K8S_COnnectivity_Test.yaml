@@ -22,6 +22,10 @@ jobs:
           echo "${{ secrets.BASTION_PUBLIC_KEY }}" > ~/.ssh/bastion_key.pub
           chmod 600 ~/.ssh/bastion_key
           chmod 644 ~/.ssh/bastion_key.pub
+      - name: Setup SSH key
+        run: |
+         echo "${{ secrets.BASTION_PRIVATE_KEY }}" > ~/.ssh/bastion_key
+         chmod 600 ~/.ssh/bastion_key
 
       - name: Create OCI API key file
         run: |
