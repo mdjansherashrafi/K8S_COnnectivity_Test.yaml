@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v4
      
 
-      # ✅ Add the OCI config + private key step here
+      # ✅ Add the OCI config and private key step here
       - name: Setup OCI config and key
         run: |
          mkdir -p ~/.oci ~/.ssh ~/.kube
