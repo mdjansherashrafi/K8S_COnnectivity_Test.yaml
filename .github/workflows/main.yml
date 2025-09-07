@@ -67,14 +67,19 @@ jobs:
           echo "Public key fingerprint:"
           ssh-keygen -lf ~/.ssh/bastion_key.pub
 
-      - name: Setup OCI CLI config, keys, kubeconfig (write from secrets)
-        id: setup_config
-        env:
-          OCI_CONFIG: ${{ secrets.OCI_CONFIG }}
-          OCI_KEY: ${{ secrets.OCI_KEY }}
-          KUBECONFIG_FILE: ${{ secrets.KUBECONFIG_FILE }}
-          BASTION_SSH_PRIVATE_KEY: ${{ secrets.BASTION_SSH_PRIVATE_KEY }}
+      - name: Setup OCI config and key
         run: |
+         mkdir -p ~/.oci ~/.ssh ~/.kube
+
+          # Write OCI config
+          echo "${{ secrets.OCI_CONFIG }}" > ~/.oci/config
+
+          # Write OCI private key (preserve formatting)
+           printf "%s\n" "${{ secrets.OCI_API_PRIVATE_KEY }}" > ~/.oci/oci_api_key.pem
+
+           chmod 600 ~/.oci/oci_api_key.pem
+           chmod 600 ~/.oci/config
+         run: |
           set -euo pipefail
           echo "Checking presence / lengths of key config secrets (lengths only, not content)"
           echo "OCI_CONFIG length: ${#OCI_CONFIG}"
