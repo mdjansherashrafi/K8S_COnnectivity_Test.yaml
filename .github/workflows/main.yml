@@ -14,6 +14,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        
+      - name: Write SSH key from secrets
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.BASTION_PRIVATE_KEY }}" > ~/.ssh/bastion_key
+          echo "${{ secrets.BASTION_PUBLIC_KEY }}" > ~/.ssh/bastion_key.pub
+          chmod 600 ~/.ssh/bastion_key
+          chmod 644 ~/.ssh/bastion_key.pub
 
       - name: Create OCI API key file
         run: |
