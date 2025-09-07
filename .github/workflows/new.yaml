@@ -1,0 +1,50 @@
+name: Test OKE_Connectivity
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  test-oke-connection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup keys and config
+        run: |
+          mkdir -p ~/.oci ~/.ssh ~/.kube
+          echo "${{ secrets.OCI_CONFIG }}" > ~/.oci/config
+          echo "${{ secrets.OCI_KEY }}" > ~/.oci/key
+          echo "${{ secrets.BASTION_PRIVATE_KEY }}" > ~/.ssh/bastion_key
+          echo "${{ secrets.KUBECONFIG_FILE }}" > ~/.kube/config
+          chmod 600 ~/.oci/config ~/.oci/key ~/.ssh/bastion_key ~/.kube/config
+
+      - name: Install OCI CLI and kubectl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip curl openssh-client
+          pip3 install --upgrade oci-cli
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+
+      - name: Create SSH tunnel to OKE
+        run: |
+          ssh -f -N -o StrictHostKeyChecking=no \
+            -i ~/.ssh/bastion_key \
+            -L 127.0.0.1:6443:${{ secrets.OKE_PRIVATE_IP }}:6443 \
+            opc@${{ secrets.BASTION_IP_ADDRESS }}
+
+      - name: Test OKE API
+        run: |
+          curl -k https://127.0.0.1:6443/version
+
+      - name: Verify OKE connectivity
+        env:
+          KUBECONFIG: $HOME/.kube/config
+        run: |
+          kubectl --kubeconfig $KUBECONFIG --server https://127.0.0.1:6443 get nodes -o wide
