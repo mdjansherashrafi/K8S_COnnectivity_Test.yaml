@@ -52,6 +52,12 @@ jobs:
           ls -la ~/.ssh
           echo "Public key (first 1 line, safe to display):"
           head -n 1 ~/.ssh/bastion_key.pub || true
+      - name: Debug SSH key fingerprint
+        run: |
+          echo "Private key fingerprint:"
+          ssh-keygen -lf ~/.ssh/bastion_key
+          echo "Public key fingerprint:"
+          ssh-keygen -lf ~/.ssh/bastion_key.pub
 
       - name: Setup OCI CLI config, keys, kubeconfig (write from secrets)
         id: setup_config
