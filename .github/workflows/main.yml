@@ -326,8 +326,9 @@ jobs:
           echo "Checking Kubernetes client version:"
           kubectl version --client=true
 
-          echo "Testing cluster access (kubectl get nodes)..."
-          if kubectl --kubeconfig $KUBECONFIG --server https://127.0.0.1:6443 get nodes -o wide; then
+      - name: Verify OKE cluster
+        run: |
+         kubectl --kubeconfig $HOME/.kube/config --server https://127.0.0.1:6443 get nodes -o wide
             echo "✅ Successfully connected to OKE and listed nodes"
           else
             echo "❌ Failed to authenticate to OKE. Common causes:"
