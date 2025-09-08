@@ -83,5 +83,5 @@ jobs:
           ssh -o LogLevel=ERROR -o StrictHostKeyChecking=no -f -n opc@${{ secrets.BASTION_IP_ADDRESS }} -i ~/.ssh/bastion -N -L 6443:${{ secrets.OKE_IP_ADDRESS }}:6443 sleep 900
           ENV_ENABLE_BUILD_TEST=false ENV_VALIDATE_SEALED_SECRETS_ENABLED=true ./.github/workflows/lint-k8s-manifests.sh
 
-        run: |
+          run: |
           kubectl --kubeconfig $KUBECONFIG --server https://127.0.0.1:6443 get nodes -o wide
