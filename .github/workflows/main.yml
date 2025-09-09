@@ -15,18 +15,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Write SSH key from secrets
-        run: |
-         mkdir -p ~/.ssh/bastion_key
-         echo "${{ secrets.BASTION_PRIVATE_KEY }}" > ~/.ssh/bastion_key/oci_bastion_key
-         chmod 600 ~/.ssh/bastion_key/oci_bastion_key
-
-      - name: Create OCI API key file
-        run: |
-          mkdir -p ~/.oci
-          echo "${{ secrets.OCI_API_KEY }}" > ~/.oci/oci_api_key
-          chmod 600 ~/.oci/oci_api_key
-
       - name: Install utilities & OCI CLI
         run: |
           sudo apt-get update
@@ -35,12 +23,25 @@ jobs:
           echo "OCI CLI version:"
           oci --version
 
-      - name: Prepare / optionally generate SSH key for Bastion
+      - name: Prepare SSH key for Bastion
         id: prepare_ssh
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
-          if [ -n "${{ secrets.BASTION_PUBLIC_KEY }}" ]; then
+          
+          # Clean up any directory conflicts
+          if [ -d ~/.ssh/bastion_key ]; then
+            echo "Removing ~/.ssh/bastion_key directory"
+            rm -rf ~/.ssh/bastion_key
+          fi
+          
+          if [ -d ~/.ssh/bastion_key.pub ]; then
+            echo "Removing ~/.ssh/bastion_key.pub directory"  
+            rm -rf ~/.ssh/bastion_key.pub
+          fi
+          
+          if [ -n "${{ secrets.BASTION_PRIVATE_KEY }}" ] && [ -n "${{ secrets.BASTION_PUBLIC_KEY }}" ]; then
+            echo "Using provided SSH keys from secrets"
             printf '%s\n' "${{ secrets.BASTION_PRIVATE_KEY }}" > ~/.ssh/bastion_key
             printf '%s\n' "${{ secrets.BASTION_PUBLIC_KEY }}" > ~/.ssh/bastion_key.pub
             chmod 600 ~/.ssh/bastion_key
@@ -53,11 +54,14 @@ jobs:
               echo "~/.ssh/bastion_key already exists — keeping it"
             fi
             chmod 600 ~/.ssh/bastion_key
+            chmod 644 ~/.ssh/bastion_key.pub
           fi
+          
           echo "Files in ~/.ssh:"
           ls -la ~/.ssh
           echo "Public key (first 1 line, safe to display):"
           head -n 1 ~/.ssh/bastion_key.pub || true
+
       - name: Debug SSH key fingerprint
         run: |
           echo "Private key fingerprint:"
@@ -65,23 +69,17 @@ jobs:
           echo "Public key fingerprint:"
           ssh-keygen -lf ~/.ssh/bastion_key.pub
 
-      - name: Setup OCI config and key
+      - name: Setup OCI config and credentials
+        env:
+          OCI_CONFIG: ${{ secrets.OCI_CONFIG }}
+          OCI_API_PRIVATE_KEY: ${{ secrets.OCI_API_PRIVATE_KEY }}
+          KUBECONFIG_FILE: ${{ secrets.KUBECONFIG_FILE }}
+          BASTION_SSH_PRIVATE_KEY: ${{ secrets.BASTION_SSH_PRIVATE_KEY }}
         run: |
-         mkdir -p ~/.oci ~/.ssh ~/.kube
-
-          # Write OCI config
-          echo "${{ secrets.OCI_CONFIG }}" > ~/.oci/config
-
-          # Write OCI private key (preserve formatting)
-           printf "%s\n" "${{ secrets.OCI_API_PRIVATE_KEY }}" > ~/.oci/oci_api_key.pem
-
-           chmod 600 ~/.oci/oci_api_key.pem
-           chmod 600 ~/.oci/config
-         run: |
           set -euo pipefail
           echo "Checking presence / lengths of key config secrets (lengths only, not content)"
           echo "OCI_CONFIG length: ${#OCI_CONFIG}"
-          echo "OCI_KEY length: ${#OCI_KEY}"
+          echo "OCI_API_PRIVATE_KEY length: ${#OCI_API_PRIVATE_KEY}"
           echo "KUBECONFIG_FILE length: ${#KUBECONFIG_FILE}"
           if [ -n "${BASTION_SSH_PRIVATE_KEY:-}" ]; then
             echo "BASTION_SSH_PRIVATE_KEY is provided (will write to ~/.ssh/bastion_ssh_key)"
@@ -99,11 +97,11 @@ jobs:
             echo "Warning: OCI_CONFIG secret appears empty"
           fi
 
-          if [ -n "${OCI_KEY}" ]; then
-            printf '%s' "$OCI_KEY" > ~/.oci/key
+          if [ -n "${OCI_API_PRIVATE_KEY}" ]; then
+            printf '%s' "$OCI_API_PRIVATE_KEY" > ~/.oci/key
             chmod 400 ~/.oci/key
           else
-            echo "Warning: OCI_KEY secret appears empty"
+            echo "Warning: OCI_API_PRIVATE_KEY secret appears empty"
           fi
 
           if [ -n "${BASTION_SSH_PRIVATE_KEY:-}" ]; then
@@ -293,43 +291,24 @@ jobs:
             curl -vk --connect-timeout 10 --max-time 30 https://127.0.0.1:6443/version || true
             exit 1
           fi
+
+      - name: Install kubectl
+        run: |
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          echo "Checking Kubernetes client version:"
+          kubectl version --client=true
+
       - name: Verify OKE cluster with kubectl
         env:
           KUBECONFIG: $HOME/.kube/config
         run: |
           set -euo pipefail
-          echo "Checking Kubernetes client version:"
-          kubectl version --client=true
-
           echo "Testing cluster access (kubectl get nodes)..."
           if kubectl --kubeconfig $KUBECONFIG --server https://127.0.0.1:6443 get nodes -o wide; then
             echo "✅ Successfully connected to OKE and listed nodes"
           else
             echo "❌ Failed to authenticate to OKE. Common causes:"
-            echo "   - KUBECONFIG_FILE secret not valid"
-            echo "   - IAM principal not mapped to Kubernetes RBAC"
-            echo "   - Token expired"
+
             exit 1
           fi
- # verification of OKE connectivity
-      - name: Verify OKE cluster with kubectl
-        env:
-          KUBECONFIG: $HOME/.kube/config
-        run: |
-          set -euo pipefail
-          echo "Checking Kubernetes client version:"
-          kubectl version --client=true
-
-      - name: Verify OKE cluster
-        run: |
-         kubectl --kubeconfig $HOME/.kube/config --server https://127.0.0.1:6443 get nodes -o wide
-            echo "✅ Successfully connected to OKE and listed nodes"
-          else
-            echo "❌ Failed to authenticate to OKE. Common causes:"
-            echo "   - KUBECONFIG_FILE secret not valid"
-            echo "   - IAM principal not mapped to Kubernetes RBAC"
-            echo "   - Token expired"
-            exit 1
-          fi
-
-
