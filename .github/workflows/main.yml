@@ -262,7 +262,7 @@ jobs:
           set -euo pipefail
           echo "Starting SSH tunnel: localhost:6443 -> ${OKE_PRIVATE_IP}:6443 via ${SESSION_ID}@${BASTION_HOST}:${BASTION_PORT}"
           # Use ExitOnForwardFailure so SSH exits if it cannot forward
-          SSH_CMD="ssh -f -N -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -i ~/.ssh/bastion_key -p ${BASTION_PORT} ${SESSION_ID}@${BASTION_HOST} -L 127.0.0.1:6443:${OKE_PRIVATE_IP}:6443"
+          SSH_CMD="ssh -f -N -o ExitOnForwardFailure=yes -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -i ~/.ssh/oci_bastion_key -p ${BASTION_PORT} ${SESSION_ID}@${BASTION_HOST} -L 127.0.0.1:6443:${OKE_PRIVATE_IP}:6443"
           echo "Running: ${SSH_CMD}"
           eval "${SSH_CMD}"
 
