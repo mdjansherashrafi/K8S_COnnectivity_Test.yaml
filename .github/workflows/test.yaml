@@ -56,3 +56,9 @@ jobs:
             chmod 600 ~/.ssh/bastion_key
             chmod 644 ~/.ssh/bastion_key.pub
           fi
+           - name: Debug SSH key fingerprint
+             run: |
+             echo "Private key fingerprint:"
+             ssh-keygen -lf ~/.ssh/bastion_key
+             echo "Public key fingerprint:"
+             ssh-keygen -lf ~/.ssh/bastion_key.pub
