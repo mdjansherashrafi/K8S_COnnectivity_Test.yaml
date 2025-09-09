@@ -86,7 +86,22 @@ jobs:
           else
             echo "No BASTION_SSH_PRIVATE_KEY secret provided — using generated ~/.ssh/bastion_key instead"
           fi
-
+      - name: Debug OCI Configuration
+        run: |
+         echo "OCI config file contents (masking sensitive data):"
+         sed 's/key_file=.*/key_file=[REDACTED]/' ~/.oci/config || echo "Config file not found"
+         echo ""
+         echo "OCI files in ~/.oci directory:"
+         ls -la ~/.oci/ || echo "~/.oci directory not found"
+         echo ""
+         echo "Checking if key file exists at expected location:"
+         if [ -f ~/.oci/api_key.pem ]; then
+         echo "✅ API key file exists"
+         echo "Key file size: $(wc -c < ~/.oci/api_key.pem) bytes"
+         echo "Key file permissions: $(ls -l ~/.oci/api_key.pem | cut -d' ' -f1)"
+         else
+         echo "❌ API key file missing at ~/.oci/api_key.pem"
+         fi
           mkdir -p ~/.oci ~/.ssh ~/.kube
 
           # Write OCI config & key (do not echo contents)
