@@ -1,0 +1,58 @@
+name: Test OKE_Connectivity
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+jobs:
+  test-oke-connection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Install utilities & OCI CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip jq net-tools iproute2 openssh-client curl
+          pip3 install --upgrade oci-cli
+          echo "OCI CLI version:"
+          oci --version
+
+      - name: Prepare SSH key for Bastion
+        id: prepare_ssh
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          
+          # Clean up any directory conflicts
+          if [ -d ~/.ssh/bastion_key ]; then
+            echo "Removing ~/.ssh/bastion_key directory"
+            rm -rf ~/.ssh/bastion_key
+          fi
+          
+          if [ -d ~/.ssh/bastion_key.pub ]; then
+            echo "Removing ~/.ssh/bastion_key.pub directory"  
+            rm -rf ~/.ssh/bastion_key.pub
+          fi
+          
+          if [ -n "${{ secrets.BASTION_PRIVATE_KEY }}" ] && [ -n "${{ secrets.BASTION_PUBLIC_KEY }}" ]; then
+            echo "Using provided SSH keys from secrets"
+            printf '%s\n' "${{ secrets.BASTION_PRIVATE_KEY }}" > ~/.ssh/bastion_key
+            printf '%s\n' "${{ secrets.BASTION_PUBLIC_KEY }}" > ~/.ssh/bastion_key.pub
+            chmod 600 ~/.ssh/bastion_key
+            chmod 644 ~/.ssh/bastion_key.pub
+          else
+            echo "No BASTION_PUBLIC_KEY secret provided — generating an ephemeral keypair at ~/.ssh/bastion_key"
+            if [ ! -f ~/.ssh/bastion_key ]; then
+              ssh-keygen -t rsa -b 2048 -f ~/.ssh/bastion_key -N "" -q
+            else
+              echo "~/.ssh/bastion_key already exists — keeping it"
+            fi
+            chmod 600 ~/.ssh/bastion_key
+            chmod 644 ~/.ssh/bastion_key.pub
+          fi
