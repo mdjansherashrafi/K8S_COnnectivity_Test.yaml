@@ -14,6 +14,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up OCI key
+        run: |
+         mkdir -p ~/.oci
+         echo "${{ secrets.OCI_API_KEY }}" > ~/.oci/api_key.pem
+         chmod 600 ~/.oci/api_key.pem
         
       - name: Write SSH key from secrets
         run: |
