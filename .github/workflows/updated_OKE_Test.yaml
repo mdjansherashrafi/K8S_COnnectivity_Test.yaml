@@ -17,9 +17,9 @@ jobs:
         
       - name: Write SSH key from secrets
         run: |
-         mkdir -p ~/.ssh/bastion_key
-         echo "${{ secrets.BASTION_PRIVATE_KEY }}" > ~/.ssh/bastion_key/oci_bastion_key
-         chmod 600 ~/.ssh/bastion_key/oci_bastion_key
+         mkdir -p ~/.ssh
+         echo "${{ secrets.BASTION_PRIVATE_KEY }}" > ~/.ssh/bastion_key
+         chmod 600 ~/.ssh/bastion_key
 
       - name: Create OCI API key file
         run: |
